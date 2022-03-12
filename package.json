@@ -1,6 +1,6 @@
 {
   "name": "driverbits_api",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Service API for DriverBits ecosystem",
   "main": "driver.js",
   "husky": {
