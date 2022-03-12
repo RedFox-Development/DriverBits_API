@@ -19,5 +19,10 @@ const SECRET_RW = process.env.NODE_ENV !== 'production'
 const MASTER_KEY = process.env.MASTER_KEY;
 
 module.exports = {
-  mongo: MONGODB_URI, port: PORT, secret_r: SECRET_R, secret_rw: SECRET_RW, env: process.env.NODE_ENV, masterKey: MASTER_KEY
+  mongo: MONGODB_URI,
+  port: PORT,
+  secret_r: SECRET_R,
+  secret_rw: SECRET_RW,
+  env: process.env.NODE_ENV,
+  masterKey: MASTER_KEY
 };

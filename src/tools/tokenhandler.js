@@ -9,19 +9,13 @@ const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 dayjs.extend(utc);
 
-export const createCustomerTokens = (customer) => {
-  let readToken = null;
-  let writeToken = null;
-  try {
-    readToken = jwt.sign(customer, secret_r);
-    writeToken = jwt.sign(customer, secret_rw);
-  } catch (e) {
-  }
-
-  return customer === null ?? [readToken, writeToken];
+const createUserToken = ({forClient = 'mobile', user}) => {
+  const readToken = jwt.sign(customer, secret_r);
+  const writeToken = jwt.sign(customer, secret_rw);
+  return [readToken, writeToken];
 };
 
-export const checkDomainTokenValidity = (token) => {
+const checkCustomerTokenValidity = (token) => {
   let decodedToken = null;
   decodedToken = jwt.verify(token, secret_r);
   if (decodedToken.type) {
@@ -32,7 +26,7 @@ export const checkDomainTokenValidity = (token) => {
   }
 };
 
-export const checkDomainTokenType = (token) => {
+const checkCustomerTokenType = (token) => {
   let decodedToken = null;
   decodedToken = jwt.verify(token, secret_r);
   if (decodedToken.type) {
@@ -41,4 +35,10 @@ export const checkDomainTokenType = (token) => {
     decodedToken = jwt.verify(token, secret_rw);
     return decodedToken.type ? 'WRITE' : null;
   }
+};
+
+module.exports = {
+  generate: createUserToken,
+  validity: checkCustomerTokenValidity,
+  type: checkCustomerTokenType
 };

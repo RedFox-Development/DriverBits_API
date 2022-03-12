@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const CustomerSchema = new mongoose.Schema({
   name: {
     required: true,
+    unique: true,
     type: String
   },
   status: {
@@ -13,7 +14,7 @@ const CustomerSchema = new mongoose.Schema({
   type: {
     required: true,
     type: String
-  },  
+  }
 });
 
 module.exports = mongoose.model('Customer', CustomerSchema);

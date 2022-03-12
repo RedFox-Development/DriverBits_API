@@ -3,12 +3,39 @@ const jwt = require('jsonwebtoken');
 
 const config = require('../tools/config');
 
-const Customer = require('../mongodb/models/customer');
-const Domain = require('../mongodb/models/domain');
+const { generate } = require('../tools/tokenhandler');
 
-const hash = (password) => {
-  return bcrypt.hash(password, 10);
-};
+const Customer = require('../mongodb/models/customer');
+const {
+  addCustomer,
+  countCustomers,
+  findCustomer,
+  findCustomers,
+  removeCustomer,
+  updateCustomerName,
+  updateCustomerStatus,
+  updateCustomerType
+} = require('../mongodb/tools/customer');
+
+const Domain = require('../mongodb/models/domain');
+const {
+  addDomain,
+  countDomains,
+  findDomain,
+  findDomains,
+  removeCustomerDomains,
+  removeDomain,
+  updateDomainName,
+  updateDomainStatus
+} = require('../mongodb/tools/domain');
+
+const User = require('../mongodb/models/user');
+const {
+  addUser,
+  countUsers,
+  findUser,
+  findUsers
+} = require('../mongodb/tools/user');
 
 const STATUS_OPT = Object.freeze({CLOSED: 'CLOSED', DEACTIVATED: 'DEACTIVATED', PENDING: 'PENDING', ACTIVATED: 'ACTIVATED'});
 const TYPE_OPT = Object.freeze({PREEMIUM: 'PREEMIUM', PRIVATE_FREE: 'FREE', PRIVATE_PREMIUM: 'PREMIUM', CORPORATE: 'CORPORATE'});
@@ -32,181 +59,67 @@ const resolvers = {
     status: (root) => root.status,
     customer: (root) => root.customer,
   },
+  User: {
+    id: (root) => root['_id'],
+    username: (root) => root.username,
+    name: (root) => root.name,
+    type: (root) => root.type,
+    email: (root) => root.email,
+    customer: (root) => root.customer,
+    domains: (root) => root.domains,
+  },
   Query: {
-    customer: async (root, args) => {
-      let customer = null;
-      if (args.name) {
-        customer = await Customer.findOne({name: args.name});
-      } else if (args.id) {
-        customer = await Customer.findOne({_id: args.id});
-      }
-      return customer;
+    customer: async (root, args) => findCustomer({name: args.name, cid: args.id}),
+    customers: async (root, args) => findCustomers({status: args.status, type: args.type}),
+    customerCount: async (root, args) => countCustomers({status: args.status, type: args.type}),
+    generateCustomerTokens: async (root, args) => {
+      return null;
     },
-    customers: async (root, args) => {
-      let customers = null;
-      if (args.status) {
-        customers = await Customer.find({status: args.status});
-      } else if (args.type) {
-        customers = await Customer.find({type: args.type});
-      } else {
-        customers = await Customer.find();
-      }
-      return customers;
-    },
-    customerCount: async (root, args) => {
-      let count = 0;
-      if (args.status) {
-        count = await Customer.countDocuments({status: args.status});
-      } else if (args.type) {
-        count = await Customer.countDocuments({type: args.type});
-      } else {
-        count = await Customer.countDocuments();
-      }
-      return count;
-    },
-    domain: async (root, args) => {
-      let domain = null;
-      if (args.name) {
-        domain = await Domain.findOne({name: args.name}).populate('customer');
-      } else if (args.id) {
-        domain = await Domain.findOne({_id: args.id}).populate('customer');
-      }
-      return domain;
-    },
-    domains: async (root, args) => {
-      let domains = null;
-      if (args.status) {
-        domains = await Domain.find({status: args.status}).populate('customer');
-      } else if (args.customer) {
-        domains = await Domain.find({customer: args.customer}).populate('customer');
-      } else {
-        domains = await Domain.find().populate('customer');
-      }
-      return domains;
-    },
-    domainCount: async (root, args) => {
-      let count = 0;
-      if (args.status) {
-        count = await Domain.countDocuments({status: args.status});
-      } else if (args.customer) {
-        count = await Domain.countDocuments({customer: args.customer});
-      } else {
-        count = await Domain.countDocuments();
-      }
-      return count;
-    },
+    domain: async (root, args) => findDomain({name: args.name, did: args.id}),
+    domains: async (root, args) => findDomains({status: args.status, cid: args.customer}),
+    domainCount: async (root, args) => countDomains({status: args.status, cid: args.customer}),
+    user: async (root, args) => await findUser({id: args.id, username: args.username}),
+    users: async (root, args) => await findUsers({type: args.type, cid: args.customer, did: args.domain}),
+    userCount: async (root, args) => await countUsers({type: args.type, cid: args.customer, did: args.domain}),
   },
   Mutation: {
     addCustomer: async (root, args) => {
-      let customer;
-      if (args.name && args.type) {
-        customer = new Customer({
-          name: args.name,
-          status: STATUS_OPT.PENDING,
-          type: args.type
-        });
-        try {
-          await customer.save();
-        } catch (e) {
-          customer = null;
-        }
-        customer = await Customer.findOne({name: args.name});
-        return customer;
-      } else if (args.name) {
-        customer = new Customer({
-          name: args.name,
-          status: STATUS_OPT.PENDING,
-          type: TYPE_OPT.PRIVATE_FREE
-        });
-        try {
-          customer = await customer.save();
-        } catch (e) {
-          customer = null;
-        }
-        return customer;
-      } else {
-        return null;
-      }
+      const customer = await addCustomer({name: args.name, type: args.type});
+      console.log(customer);
+      const domain = await addDomain({cid: customer._id, name: `${customer.name}-default`});
+      console.log(domain);
+      const user = await addUser({name: `${args.name} handler`, username: args.username, email: args.email, password: args.password, type: args.usertype, did: domain._id, cid: customer._id});
+      console.log(user);
+      return customer;
     },
     removeCustomer: async (root, args) => {
-      let customer = await Customer.findOne({_id: args.id});
-      let domains = await Domain.find({customer: args.id});
-      customer.status = STATUS_OPT.CLOSED;
-      try {
-        await customer.save();
-        customer = await Customer.findOneAndDelete({_id: args.id, name: args.name});
-        domains.forEach(async domain => await Domain.findOneAndDelete({_id: domain.id}));
-      } catch (e) {}
-      return customer;
-    },
-    updateCustomerType: async (root, args) => {
-      let customer = await Customer.findOne({_id: args.id});
-      customer.type = args.newType;
-      try {
-        await customer.save();
-      } catch (e) {}
-      customer = await Customer.findOne({_id: args.id});
-      return customer;
-    },
-    updateCustomerStatus: async (root, args) => {
-      let customer = await Customer.findOne({_id: args.id});
-      customer.status = args.newStatus;
-      try {
-        await customer.save();
-      } catch (e) {}
-      customer = await Customer.findOne({_id: args.id});
-      return customer;
-    },
-    updateCustomerName: async (root, args) => {
-      let customer = await Customer.findOne({_id: args.id});
-      customer.name = args.newName;
-      try {
-        await customer.save();
-      } catch (e) {}
-      customer = await Customer.findOne({_id: args.id});
-      return customer;
-    },
-    addDomain: async (root, args) => {
-      let domain = new Domain({
-        name: args.name,
-        status: STATUS_OPT.PENDING,
-        customer: args.customer
-      });
-      try {
-        await domain.save();
-        domain = await Domain.findOne({name: args.name}).populate('customer');
-      } catch (e) {
-        domain = null;
+      const customer = await removeCustomer({cid: args.id, name: args.name});
+      if (await removeCustomerDomains({cid: customer._id})) {
+        return customer;
+      } else {
+        let replaced = new Customer({
+          name: customer.name,
+          status: STATUS_OPT.DEACTIVATED,
+          type: customer.type,
+          _id: customer._id
+        });
+        try {
+          await replaced.save();
+          replaced = await Customer.findOne({_id: customer._id});
+        } catch (e) {
+          replaced = null;
+        }
+        return replaced;
       }
-      return domain;
     },
-    removeDomain: async (root, args) => {
-      let domain = await Domain.findOne({_id: args.id});
-      domain.status = STATUS_OPT.CLOSED;
-      try {
-        await domain.save();
-        domain = await Domain.findOneAndDelete({_id: args.id, name: args.name}).populate('customer');
-      } catch (e) {}
-      return domain;
-    },
-    updateDomainStatus: async (root, args) => {
-      let domain = await Domain.findOne({_id: args.id}).populate('customer');
-      domain.status = args.newStatus;
-      try {
-        await domain.save();
-      } catch (e) {}
-      domain = Domain.findOne({_id: args.id}).populate('customer');
-      return domain
-    },
-    updateDomainName: async (root, args) => {
-      let domain = await Domain.findOne({_id: args.id}).populate('customer');
-      domain.status = args.newName;
-      try {
-        await domain.save();
-      } catch (e) {}
-      domain = Domain.findOne({_id: args.id}).populate('customer');
-      return domain
-    },
+    updateCustomerType: async (root, args) => await updateCustomerType({cid: args.id, newType: args.newType}),
+    updateCustomerStatus: async (root, args) => await updateCustomerStatus({cid: args.id, newStatus: args.newStatus}),
+    updateCustomerName: async (root, args) => await updateCustomerName({cid: args.id, newName: args.newName}),
+    addDomain: async (root, args) => await addDomain({name: args.name, cid: args.customer}),
+    removeDomain: async (root, args) => await removeDomain({name: args.name, did: args.id}),
+    updateDomainStatus: async (root, args) => await updateDomainStatus({did: args.id, newStatus: args.newStatus}),
+    updateDomainName: async (root, args) => await updateDomainName({did: args.id, newName: args.newName}),
+    addUser: async (root, args) => await addUser({name: args.name, username: args.username, email: args.email, password: args.password, type: args.type, did: args.domain, cid: args.customer}),
   },
 };
 
