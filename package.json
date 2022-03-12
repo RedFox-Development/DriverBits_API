@@ -1,23 +1,23 @@
 {
-  "name": "screwdrive",
+  "name": "driverbits_api",
   "version": "3.0.0",
-  "description": "Service API for ScrewDriver/DriverBits ecosystem",
-  "main": "drive.js",
+  "description": "Service API for DriverBits ecosystem",
+  "main": "driver.js",
   "husky": {
     "hooks": {
       "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
     }
   },
   "scripts": {
-    "prod": "NODE_ENV=production node drive.js",
-    "dev": "NODE_ENV=development nodemon drive.js",
+    "prod": "NODE_ENV=production node driver.js",
+    "dev": "NODE_ENV=development nodemon driver.js",
     "cm": "git-cz",
     "release": "standard-version",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/RedFox-Development/ScrewDrive.git"
+    "url": "git@github.com:RedFox-Development/DriverBits_API.git"
   },
   "keywords": [
     "node",
@@ -31,9 +31,9 @@
   "author": "RedFoxFinn",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/RedFox-Development/ScrewDrive/issues"
+    "url": "https://github.com/RedFox-Development/DriverBits_API/issues"
   },
-  "homepage": "https://github.com/RedFox-Development/ScrewDrive#readme",
+  "homepage": "https://github.com/RedFox-Development/DriverBits_API#readme",
   "devDependencies": {
     "@commitlint/cli": "^16.2.1",
     "@commitlint/config-conventional": "^16.2.1",
